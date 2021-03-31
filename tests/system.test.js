@@ -46,8 +46,8 @@ describe('system', () => {
       syntheticUsd = await createToken({ connection, wallet, mintAuthority })
 
       let outcomes = [
-        syntheticUsd,
-        collateralToken,
+        syntheticUsd.publicKey,
+        collateralToken.publicKey,
       ]
       let outcomesName = [
         'USD',
@@ -63,7 +63,7 @@ describe('system', () => {
         syntheticUsd.publicKey, // USD Token
         mintAuthority, // Mint Authority
         outcomes,
-        outcomesName,
+        // outcomesName,
         2,
         {
           accounts: {}

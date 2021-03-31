@@ -30,7 +30,7 @@ mod system {
             outcomes.resize(
                 Self::ASSETS_SIZE,
                 Outcome {
-                    ticker: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                    // ticker: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
                     ..Default::default()
                 },
             );
@@ -55,7 +55,7 @@ mod system {
             usd_token: Pubkey,
             mint_authority: Pubkey,
             outcomes: Vec<Pubkey>,
-            outcomes_name: Vec<Vec<u8>>,
+            // outcomes_name: Vec<&String>,
             outcomes_number: u8,
         ) -> Result<()> {
             self.signer = signer;
@@ -64,16 +64,16 @@ mod system {
             self.collateral_token = collateral_token;
             self.collateral_account = collateral_account;
             self.mint_authority = mint_authority;
-            let mut outcomes: Vec<Outcome> = vec![];
+            let mut finalOutcomes: Vec<Outcome> = vec![];
             for n in 0..outcomes_number {
-                outcomes.push(Outcome {
+                finalOutcomes.push(Outcome {
                     decimals: 8,
-                    address: outcomes[n],
-                    ticker: outcomes_name[n].as_bytes().to_vec(),
+                    address: outcomes[usize::from(n)],
+                    // ticker: outcomes_name[usize::from(n)].as_bytes().to_vec(),
                 })
             }
 
-            self.outcomes = outcomes;
+            self.outcomes = finalOutcomes;
             Ok(())
         }
 
@@ -135,7 +135,7 @@ impl<'a, 'b, 'c, 'info> From<&Mint<'info>> for CpiContext<'a, 'b, 'c, 'info, Min
 pub struct Outcome {
     pub address: Pubkey,
     pub decimals: u8,
-    pub ticker: Vec<u8>,
+    // pub ticker: Vec<u8>,
 }
 
 #[error]
