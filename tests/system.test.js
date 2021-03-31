@@ -60,11 +60,11 @@ describe('system', () => {
         wallet.publicKey, // Admin
         collateralToken.publicKey, // Collateral Token
         collateralAccount, // Collateral Account
-        syntheticUsd.publicKey, // USD Token
         mintAuthority, // Mint Authority
         outcomes,
         // outcomesName,
         2,
+        new anchor.BN(1617100690),
         {
           accounts: {}
         }

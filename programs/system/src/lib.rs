@@ -4,7 +4,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{
     self, 
     MintTo,
-    TokenAccount, 
+    // TokenAccount, 
     //Transfer
 };
 
@@ -21,6 +21,8 @@ mod system {
         pub collateral_token: Pubkey,
         pub collateral_account: Pubkey,
         pub outcomes: Vec<Outcome>,
+        pub winner: Pubkey,
+        pub expiration_time: u64,
     }
 
     impl InternalState {
@@ -41,6 +43,8 @@ mod system {
                 mint_authority: Pubkey::default(),
                 collateral_token: Pubkey::default(),
                 collateral_account: Pubkey::default(),
+                winner: Pubkey::default(),
+                expiration_time: 0,
                 outcomes,
             })
         }
@@ -52,11 +56,11 @@ mod system {
             admin: Pubkey,
             collateral_token: Pubkey,
             collateral_account: Pubkey,
-            usd_token: Pubkey,
             mint_authority: Pubkey,
             outcomes: Vec<Pubkey>,
             // outcomes_name: Vec<&String>,
             outcomes_number: u8,
+            expiration_time: u64,
         ) -> Result<()> {
             self.signer = signer;
             self.nonce = nonce;
@@ -64,16 +68,17 @@ mod system {
             self.collateral_token = collateral_token;
             self.collateral_account = collateral_account;
             self.mint_authority = mint_authority;
-            let mut finalOutcomes: Vec<Outcome> = vec![];
+            self.expiration_time = expiration_time;
+            let mut final_outcomes: Vec<Outcome> = vec![];
             for n in 0..outcomes_number {
-                finalOutcomes.push(Outcome {
+                final_outcomes.push(Outcome {
                     decimals: 8,
                     address: outcomes[usize::from(n)],
                     // ticker: outcomes_name[usize::from(n)].as_bytes().to_vec(),
                 })
             }
 
-            self.outcomes = finalOutcomes;
+            self.outcomes = final_outcomes;
             Ok(())
         }
 
