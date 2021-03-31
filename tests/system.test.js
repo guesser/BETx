@@ -45,6 +45,15 @@ describe('system', () => {
       collateralAccount = await collateralToken.createAccount(mintAuthority)
       syntheticUsd = await createToken({ connection, wallet, mintAuthority })
 
+      let outcomes = [
+        syntheticUsd,
+        collateralToken,
+      ]
+      let outcomesName = [
+        'USD',
+        'DAI',
+      ]
+
       await systemProgram.state.rpc.initialize(
         _nonce, // Nonce
         signer.publicKey, // Signer
@@ -53,6 +62,9 @@ describe('system', () => {
         collateralAccount, // Collateral Account
         syntheticUsd.publicKey, // USD Token
         mintAuthority, // Mint Authority
+        outcomes,
+        outcomesName,
+        2,
         {
           accounts: {}
         }

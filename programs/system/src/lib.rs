@@ -54,6 +54,9 @@ mod system {
             collateral_account: Pubkey,
             usd_token: Pubkey,
             mint_authority: Pubkey,
+            outcomes: Vec<Pubkey>,
+            outcomes_name: Vec<Vec<u8>>,
+            outcomes_number: u8,
         ) -> Result<()> {
             self.signer = signer;
             self.nonce = nonce;
@@ -61,22 +64,19 @@ mod system {
             self.collateral_token = collateral_token;
             self.collateral_account = collateral_account;
             self.mint_authority = mint_authority;
-            //clean asset array + add synthetic Usd
-            let usd_asset = Outcome {
-                decimals: 8,
-                address: usd_token,
-                ticker: "xUSD".as_bytes().to_vec(),
-            };
-            let collateral_asset = Outcome {
-                decimals: 8,
-                address: collateral_token,
-                ticker: "SNY".as_bytes().to_vec(),
-            };
-            self.outcomes = vec![usd_asset, collateral_asset];
+            let mut outcomes: Vec<Outcome> = vec![];
+            for n in 0..outcomes_number {
+                outcomes.push(Outcome {
+                    decimals: 8,
+                    address: outcomes[n],
+                    ticker: outcomes_name[n].as_bytes().to_vec(),
+                })
+            }
+
+            self.outcomes = outcomes;
             Ok(())
         }
 
-        // This only support sythetic USD
         pub fn mint(&mut self, ctx: Context<Mint>, amount: u64) -> Result<()> {
             /*
             let deposited = ctx.accounts.collateral_account.amount;
