@@ -61,7 +61,7 @@ const mintUsd = async ({
   await systemProgram.state.rpc.mint(mintAmount, {
     accounts: {
       authority: mintAuthority,
-      mint: state.assets[0].assetAddress,
+      mint: state.outcomes[0].address,
       to: userTokenAccount,
       tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
       clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,

@@ -69,9 +69,8 @@ describe('system', () => {
     assert.ok(state.collateralToken.equals(collateralToken.publicKey))
     assert.ok(state.collateralAccount.equals(collateralAccount))
     // initaly we will have collateral and sythetic usd
-    assert.ok(state.assets.length === 2)
-    assert.ok(state.assets[0].price.eq(new anchor.BN(1e4)))
-    assert.ok(state.assets[0].assetAddress.equals(syntheticUsd.publicKey))
+    assert.ok(state.outcomes.length === 2)
+    assert.ok(state.outcomes[0].address.equals(syntheticUsd.publicKey))
     // initial collateralBalance
     const collateralAccountInfo = await collateralToken.getAccountInfo(collateralAccount)
     assert.ok(collateralAccountInfo.amount.eq(new anchor.BN(0)))

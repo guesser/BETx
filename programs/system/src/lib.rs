@@ -18,19 +18,18 @@ mod system {
         pub signer: Pubkey,
         pub admin: Pubkey,
         pub mint_authority: Pubkey,
-        // pub total_collateral_shares: u64,
         pub collateral_token: Pubkey,
         pub collateral_account: Pubkey,
-        pub assets: Vec<Asset>,
+        pub outcomes: Vec<Outcome>,
     }
 
     impl InternalState {
         pub const ASSETS_SIZE: usize = 10;
         pub fn new(_ctx: Context<New>) -> Result<Self> {
-            let mut assets: Vec<Asset> = vec![];
-            assets.resize(
+            let mut outcomes: Vec<Outcome> = vec![];
+            outcomes.resize(
                 Self::ASSETS_SIZE,
-                Asset {
+                Outcome {
                     ticker: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
                     ..Default::default()
                 },
@@ -42,7 +41,7 @@ mod system {
                 mint_authority: Pubkey::default(),
                 collateral_token: Pubkey::default(),
                 collateral_account: Pubkey::default(),
-                assets,
+                outcomes,
             })
         }
         pub fn initialize(
@@ -63,23 +62,17 @@ mod system {
             self.collateral_account = collateral_account;
             self.mint_authority = mint_authority;
             //clean asset array + add synthetic Usd
-            let usd_asset = Asset {
+            let usd_asset = Outcome {
                 decimals: 8,
-                asset_address: usd_token,
-                last_update: std::u64::MAX,
-                price: 1 * 10u64.pow(4),
-                supply: 0,
+                address: usd_token,
                 ticker: "xUSD".as_bytes().to_vec(),
             };
-            let collateral_asset = Asset {
+            let collateral_asset = Outcome {
                 decimals: 8,
-                asset_address: collateral_token,
-                last_update: 0,
-                price: 0,
-                supply: 0,
+                address: collateral_token,
                 ticker: "SNY".as_bytes().to_vec(),
             };
-            self.assets = vec![usd_asset, collateral_asset];
+            self.outcomes = vec![usd_asset, collateral_asset];
             Ok(())
         }
 
@@ -94,7 +87,7 @@ mod system {
 
             let mint_token_adddress = ctx.accounts.mint.to_account_info().clone().key;
 
-            if !mint_token_adddress.eq(&self.assets[0].asset_address) {
+            if !mint_token_adddress.eq(&self.outcomes[0].address) {
                 return Err(ErrorCode::NotSyntheticUsd.into());
             }
 
@@ -139,11 +132,8 @@ impl<'a, 'b, 'c, 'info> From<&Mint<'info>> for CpiContext<'a, 'b, 'c, 'info, Min
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Default, Clone)]
-pub struct Asset {
-    pub asset_address: Pubkey,
-    pub price: u64,
-    pub last_update: u64,
-    pub supply: u64,
+pub struct Outcome {
+    pub address: Pubkey,
     pub decimals: u8,
     pub ticker: Vec<u8>,
 }
