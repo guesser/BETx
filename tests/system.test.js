@@ -61,15 +61,13 @@ describe('system', () => {
       console.log(error)
     }
   })
+
   it('Check initialState', async () => {
     const state = await systemProgram.state()
     assert.ok(state.nonce === nonce)
-    assert.ok(state.initialized === true)
     assert.ok(state.signer.equals(signer.publicKey))
     assert.ok(state.collateralToken.equals(collateralToken.publicKey))
     assert.ok(state.collateralAccount.equals(collateralAccount))
-    assert.ok(state.debt.eq(new anchor.BN(0)))
-    assert.ok(state.shares.eq(new anchor.BN(0)))
     // initaly we will have collateral and sythetic usd
     assert.ok(state.assets.length === 2)
     assert.ok(state.assets[0].price.eq(new anchor.BN(1e4)))
@@ -78,6 +76,7 @@ describe('system', () => {
     const collateralAccountInfo = await collateralToken.getAccountInfo(collateralAccount)
     assert.ok(collateralAccountInfo.amount.eq(new anchor.BN(0)))
   })
+
   describe('#mint()', () => {
     const firstMintAmount = new anchor.BN(1 * 1e8)
     const firstMintShares = new anchor.BN(1 * 1e8)
@@ -99,13 +98,9 @@ describe('system', () => {
         mintAmount: firstMintAmount
       })
       const info = await syntheticUsd.getAccountInfo(userTokenAccount)
-      console.log(info.amount.toString(), firstMintAmount.toString())
       assert.ok(info.amount.eq(firstMintAmount))
-      const account = await systemProgram.account.userAccount(userSystemAccount.publicKey)
-      console.log(account.shares.toString(), firstMintShares.toString())
-      assert.ok(account.shares.eq(firstMintShares)) // Its first mint so shares will be 1e8
-      const state = await systemProgram.state()
-      assert.ok(state.shares.eq(firstMintShares)) // Its first mint so shares will be 1e8
+      // const account = await systemProgram.account.userAccount(userSystemAccount.publicKey)
+      // assert.ok(state.shares.eq(firstMintShares)) // Its first mint so shares will be 1e8
     })
     it('2nd mint', async () => {
       const { userSystemAccount, userWallet } = await createAccountWithCollateral({
@@ -128,10 +123,6 @@ describe('system', () => {
       })
       const info = await syntheticUsd.getAccountInfo(userTokenAccount)
       assert.ok(info.amount.eq(firstMintAmount))
-      const account = await systemProgram.account.userAccount(userSystemAccount.publicKey)
-      assert.ok(account.shares.eq(firstMintShares)) // we minted same amount so shares should be equal
-      const state = await systemProgram.state()
-      assert.ok(state.shares.eq(firstMintShares.mul(new anchor.BN(2)))) // Shares should double
     })
     it('3rd mint', async () => {
       const mintAmount = firstMintAmount.div(new anchor.BN(3)) // Mint 1/3
@@ -154,14 +145,6 @@ describe('system', () => {
       })
       const info = await syntheticUsd.getAccountInfo(userTokenAccount)
       assert.ok(info.amount.eq(mintAmount))
-      const account = await systemProgram.account.userAccount(userSystemAccount.publicKey)
-      assert.ok(account.shares.eq(firstMintShares.div(new anchor.BN(3)))) // we minted 1/3 amount
-      const state = await systemProgram.state()
-      assert.ok(
-        state.shares.eq(
-          firstMintShares.mul(new anchor.BN(2)).add(firstMintShares.div(new anchor.BN(3)))
-        )
-      )
     })
   })
 

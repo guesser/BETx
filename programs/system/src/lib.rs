@@ -18,14 +18,9 @@ mod system {
         pub signer: Pubkey,
         pub admin: Pubkey,
         pub mint_authority: Pubkey,
-        pub initialized: bool,
-        pub debt: u64,
-        pub shares: u64,
-        pub collateral_balance: u64,
+        // pub total_collateral_shares: u64,
         pub collateral_token: Pubkey,
         pub collateral_account: Pubkey,
-        pub collateralization_level: u32,
-        pub max_delay: u32,
         pub assets: Vec<Asset>,
     }
 
@@ -45,12 +40,6 @@ mod system {
                 signer: Pubkey::default(),
                 admin: Pubkey::default(),
                 mint_authority: Pubkey::default(),
-                initialized: false,
-                debt: 0,
-                shares: 0,
-                collateral_balance: 0,
-                collateralization_level: 500, // 500%
-                max_delay: 1000,
                 collateral_token: Pubkey::default(),
                 collateral_account: Pubkey::default(),
                 assets,
@@ -67,7 +56,6 @@ mod system {
             usd_token: Pubkey,
             mint_authority: Pubkey,
         ) -> Result<()> {
-            self.initialized = true;
             self.signer = signer;
             self.nonce = nonce;
             self.admin = admin;
@@ -97,48 +85,25 @@ mod system {
 
         // This only support sythetic USD
         pub fn mint(&mut self, ctx: Context<Mint>, amount: u64) -> Result<()> {
-            let user_account = &mut ctx.accounts.user_account;
-            let mint_token_adddress = ctx.accounts.mint.to_account_info().clone().key;
-            if !mint_token_adddress.eq(&self.assets[0].asset_address) {
-                return Err(ErrorCode::NotSyntheticUsd.into());
-            }
-            let debt: u64 = 0;
-            let user_debt: u64 = 0;
-
-            let mint_asset = self
-                .assets
-                .iter_mut()
-                .find(|x| x.asset_address == *mint_token_adddress)
-                .unwrap();
-            let amount_mint_usd: u64 = amount;
-            let max_user_debt: u64 = amount;
-
-            if max_user_debt - user_debt < amount_mint_usd {
-                return Err(ErrorCode::MintLimit.into());
-            }
-            let new_shares: u64 = amount;
-            self.debt = debt + amount_mint_usd;
-
-            self.shares += new_shares;
-            user_account.shares += new_shares;
-            mint_asset.supply += amount;
-            let seeds = &[self.signer.as_ref(), &[self.nonce]];
-            let signer = &[&seeds[..]];
-            let cpi_ctx = CpiContext::from(&*ctx.accounts).with_signer(signer);
-            token::mint_to(cpi_ctx, amount);
-
-            Ok(())
-        }
-
-        pub fn deposit(&mut self, ctx: Context<Deposit>) -> Result<()> {
-            let new_balance = ctx.accounts.collateral_account.amount;
-            let deposited = new_balance - self.collateral_balance;
+            /*
+            let deposited = ctx.accounts.collateral_account.amount;
             if deposited == 0 {
                 return Err(ErrorCode::ZeroDeposit.into());
             }
-            let user_account = &mut ctx.accounts.user_account;
-            user_account.collateral += deposited;
-            self.collateral_balance = new_balance;
+            */
+
+            let mint_token_adddress = ctx.accounts.mint.to_account_info().clone().key;
+
+            if !mint_token_adddress.eq(&self.assets[0].asset_address) {
+                return Err(ErrorCode::NotSyntheticUsd.into());
+            }
+
+            let seeds = &[self.signer.as_ref(), &[self.nonce]];
+            let signer = &[&seeds[..]];
+
+            let cpi_ctx = CpiContext::from(&*ctx.accounts).with_signer(signer);
+            token::mint_to(cpi_ctx, amount)?;
+
             Ok(())
         }
     }

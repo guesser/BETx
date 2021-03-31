@@ -40,6 +40,7 @@ const createAccountWithCollateral = async ({
     tou64(amount.toString())
   )
 
+  /*
   await systemProgram.state.rpc.deposit({
     accounts: {
       userAccount: userAccount.publicKey,
@@ -57,6 +58,7 @@ const createAccountWithCollateral = async ({
       )
     ]
   })
+  */
   return { userWallet, userSystemAccount: userAccount, userCollateralTokenAccount }
 }
 
