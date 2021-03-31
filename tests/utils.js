@@ -16,21 +16,9 @@ const createAccountWithCollateral = async ({
   systemProgram,
   mintAuthority,
   collateralToken,
-  collateralAccount,
   amount = new anchor.BN(100 * 1e8)
 }) => {
   const userWallet = await newAccountWithLamports(systemProgram.provider.connection)
-  const userAccount = new anchor.web3.Account()
-
-  await systemProgram.rpc.createUserAccount(userWallet.publicKey, {
-    accounts: {
-      userAccount: userAccount.publicKey,
-      rent: anchor.web3.SYSVAR_RENT_PUBKEY
-    },
-    signers: [userAccount],
-    // Auto allocate memory
-    instructions: [await systemProgram.account.userAccount.createInstruction(userAccount)]
-  })
 
   const userCollateralTokenAccount = await collateralToken.createAccount(userWallet.publicKey)
   await collateralToken.mintTo(
@@ -59,14 +47,13 @@ const createAccountWithCollateral = async ({
     ]
   })
   */
-  return { userWallet, userSystemAccount: userAccount, userCollateralTokenAccount }
+  return { userWallet, userCollateralTokenAccount }
 }
 
 const mintUsd = async ({
   userWallet,
   systemProgram,
   mintAmount,
-  userSystemAccount,
   userTokenAccount,
   mintAuthority
 }) => {
@@ -78,7 +65,6 @@ const mintUsd = async ({
       to: userTokenAccount,
       tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
       clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-      userAccount: userSystemAccount.publicKey,
       owner: userWallet.publicKey
     },
     signers: [userWallet],

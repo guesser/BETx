@@ -79,9 +79,8 @@ describe('system', () => {
 
   describe('#mint()', () => {
     const firstMintAmount = new anchor.BN(1 * 1e8)
-    const firstMintShares = new anchor.BN(1 * 1e8)
     it('1st mint', async () => {
-      const { userSystemAccount, userWallet } = await createAccountWithCollateral({
+      const { userWallet } = await createAccountWithCollateral({
         collateralAccount,
         collateralToken,
         mintAuthority: wallet,
@@ -92,7 +91,6 @@ describe('system', () => {
       await mintUsd({
         userWallet,
         systemProgram,
-        userSystemAccount, // 
         userTokenAccount, // To
         mintAuthority,
         mintAmount: firstMintAmount
@@ -103,7 +101,7 @@ describe('system', () => {
       // assert.ok(state.shares.eq(firstMintShares)) // Its first mint so shares will be 1e8
     })
     it('2nd mint', async () => {
-      const { userSystemAccount, userWallet } = await createAccountWithCollateral({
+      const { userWallet } = await createAccountWithCollateral({
         collateralAccount,
         collateralToken,
         mintAuthority: wallet,
@@ -111,12 +109,11 @@ describe('system', () => {
         amount: new anchor.BN(100 * 1e8)
       })
 
-      const userTokenAccount = await syntheticUsd.createAccount(userSystemAccount.publicKey)
+      const userTokenAccount = await syntheticUsd.createAccount(userWallet.publicKey)
       // We mint same amount
       await mintUsd({
         userWallet,
         systemProgram,
-        userSystemAccount,
         userTokenAccount,
         mintAuthority,
         mintAmount: firstMintAmount
@@ -126,19 +123,18 @@ describe('system', () => {
     })
     it('3rd mint', async () => {
       const mintAmount = firstMintAmount.div(new anchor.BN(3)) // Mint 1/3
-      const { userSystemAccount, userWallet } = await createAccountWithCollateral({
+      const { userWallet } = await createAccountWithCollateral({
         collateralAccount,
         collateralToken,
         mintAuthority: wallet,
         systemProgram,
         amount: new anchor.BN(100 * 1e8)
       })
-      const userTokenAccount = await syntheticUsd.createAccount(userSystemAccount.publicKey)
+      const userTokenAccount = await syntheticUsd.createAccount(userWallet.publicKey)
       // We mint same amount
       await mintUsd({
         userWallet,
         systemProgram,
-        userSystemAccount,
         userTokenAccount,
         mintAuthority,
         mintAmount: mintAmount
@@ -146,23 +142,5 @@ describe('system', () => {
       const info = await syntheticUsd.getAccountInfo(userTokenAccount)
       assert.ok(info.amount.eq(mintAmount))
     })
-  })
-
-  it('#createUserAccount()', async () => {
-    const userWallet = new anchor.web3.Account()
-    const userAccount = new anchor.web3.Account()
-    await systemProgram.rpc.createUserAccount(userWallet.publicKey, {
-      accounts: {
-        userAccount: userAccount.publicKey,
-        rent: anchor.web3.SYSVAR_RENT_PUBKEY
-      },
-      signers: [userAccount],
-      // Auto allocate memory
-      instructions: [await systemProgram.account.userAccount.createInstruction(userAccount)]
-    })
-    const account = await systemProgram.account.userAccount(userAccount.publicKey)
-    assert.ok(account.shares.eq(new anchor.BN(0)))
-    assert.ok(account.collateral.eq(new anchor.BN(0)))
-    assert.ok(account.owner.equals(userWallet.publicKey))
   })
 })

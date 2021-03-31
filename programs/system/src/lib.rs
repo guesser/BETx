@@ -107,27 +107,13 @@ mod system {
             Ok(())
         }
     }
-
-    // Change to create market
-    pub fn create_user_account(ctx: Context<CreateUserAccount>, owner: Pubkey) -> ProgramResult {
-        let user_account = &mut ctx.accounts.user_account;
-        user_account.owner = owner;
-        user_account.shares = 0;
-        user_account.collateral = 0;
-        Ok(())
-    }
 }
 
 #[derive(Accounts)]
 pub struct New {}
 #[derive(Accounts)]
 pub struct Initialize {}
-#[derive(Accounts)]
-pub struct CreateUserAccount<'info> {
-    #[account(init)]
-    pub user_account: ProgramAccount<'info, UserAccount>,
-    pub rent: Sysvar<'info, Rent>,
-}
+
 #[derive(Accounts)]
 pub struct Mint<'info> {
     pub authority: AccountInfo<'info>,
@@ -136,8 +122,6 @@ pub struct Mint<'info> {
     #[account(mut)]
     pub to: AccountInfo<'info>,
     pub token_program: AccountInfo<'info>,
-    #[account(mut, has_one = owner)]
-    pub user_account: ProgramAccount<'info, UserAccount>,
     pub clock: Sysvar<'info, Clock>,
     #[account(signer)]
     owner: AccountInfo<'info>,
@@ -153,12 +137,6 @@ impl<'a, 'b, 'c, 'info> From<&Mint<'info>> for CpiContext<'a, 'b, 'c, 'info, Min
         CpiContext::new(cpi_program, cpi_accounts)
     }
 }
-#[account]
-pub struct UserAccount {
-    pub owner: Pubkey,
-    pub shares: u64,
-    pub collateral: u64,
-}
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Default, Clone)]
 pub struct Asset {
@@ -168,14 +146,6 @@ pub struct Asset {
     pub supply: u64,
     pub decimals: u8,
     pub ticker: Vec<u8>,
-}
-#[derive(Accounts)]
-pub struct Deposit<'info> {
-    // #[account(signer)]
-    // pub test: AccountInfo<'info>,
-    #[account(mut)]
-    pub user_account: ProgramAccount<'info, UserAccount>,
-    pub collateral_account: CpiAccount<'info, TokenAccount>,
 }
 
 #[error]
