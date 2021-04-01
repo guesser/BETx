@@ -16,10 +16,10 @@ mod system {
     pub struct InternalState {
         pub nonce: u8,
         pub signer: Pubkey,
-        pub admin: Pubkey,
+        pub oracle: Pubkey,
         pub mint_authority: Pubkey,
         pub collateral_token: Pubkey,
-        pub collateral_account: Pubkey,
+        pub vault: Pubkey,
         pub outcomes: Vec<Outcome>,
         pub winner: Pubkey,
         pub expiration_time: u64,
@@ -39,10 +39,10 @@ mod system {
             Ok(Self {
                 nonce: 0,
                 signer: Pubkey::default(),
-                admin: Pubkey::default(),
+                oracle: Pubkey::default(),
                 mint_authority: Pubkey::default(),
                 collateral_token: Pubkey::default(),
-                collateral_account: Pubkey::default(),
+                vault: Pubkey::default(),
                 winner: Pubkey::default(),
                 expiration_time: 0,
                 outcomes,
@@ -53,20 +53,23 @@ mod system {
             _ctx: Context<Initialize>,
             nonce: u8,
             signer: Pubkey,
-            admin: Pubkey,
+            oracle: Pubkey,
             collateral_token: Pubkey,
-            collateral_account: Pubkey,
+            vault: Pubkey,
             mint_authority: Pubkey,
             outcomes: Vec<Pubkey>,
             // outcomes_name: Vec<&String>,
             outcomes_number: u8,
             expiration_time: u64,
         ) -> Result<()> {
+            if self.expiration_time != 0 || self.oracle != Pubkey::default() {
+                return Err(ErrorCode::ProgramInitialized.into());
+            }
             self.signer = signer;
             self.nonce = nonce;
-            self.admin = admin;
+            self.oracle = oracle;
             self.collateral_token = collateral_token;
-            self.collateral_account = collateral_account;
+            self.vault = vault;
             self.mint_authority = mint_authority;
             self.expiration_time = expiration_time;
             let mut final_outcomes: Vec<Outcome> = vec![];
@@ -145,6 +148,8 @@ pub struct Outcome {
 
 #[error]
 pub enum ErrorCode {
+    #[msg("Program already Initialized")]
+    ProgramInitialized,
     #[msg("Mint limit crossed")]
     MintLimit,
     #[msg("Wrong token not sythetic usd")]
