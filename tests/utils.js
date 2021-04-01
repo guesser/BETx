@@ -2,7 +2,7 @@ const { Token, u64 } = require('@solana/spl-token')
 const TokenInstructions = require('@project-serum/serum').TokenInstructions
 const anchor = require('@project-serum/anchor')
 
-const createToken = async ({ connection, wallet, mintAuthority }) => 
+const createToken = async ({ connection, wallet, mintAuthority }) =>
   Token.createMint(
     connection,
     wallet,
@@ -55,19 +55,34 @@ const mintUsd = async ({
   systemProgram,
   mintAmount,
   userTokenAccount,
-  mintAuthority
+  mintAuthority,
+  vault,
+  collateralToken,
+  userCollateralTokenAccount
 }) => {
+  let amount = new anchor.BN(10 * 1e8)
   const state = await systemProgram.state()
-  await systemProgram.state.rpc.mint(mintAmount, {
+  await systemProgram.state.rpc.mintCompleteSets(mintAmount, {
     accounts: {
       authority: mintAuthority,
       mint: state.outcomes[0].address,
       to: userTokenAccount,
       tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
       clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
-      owner: userWallet.publicKey
+      owner: userWallet.publicKey,
+      collateralAccount: vault
     },
     signers: [userWallet],
+    instructions: [
+      Token.createTransferInstruction(
+        collateralToken.programId,
+        userCollateralTokenAccount,
+        vault,
+        userWallet.publicKey,
+        [],
+        tou64(amount.toString())
+      )
+    ]
   })
 }
 const tou64 = (amount) => {
@@ -79,7 +94,7 @@ const newAccountWithLamports = async (connection, lamports = 1e10) => {
 
   let retries = 30
   await connection.requestAirdrop(account.publicKey, lamports)
-  for (;;) {
+  for (; ;) {
     await sleep(500)
     // eslint-disable-next-line eqeqeq
     if (lamports == (await connection.getBalance(account.publicKey))) {

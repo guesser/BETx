@@ -43,6 +43,7 @@ describe('system', () => {
 
       collateralToken = await createToken({ connection, wallet, mintAuthority: wallet.publicKey })
       vault = await collateralToken.createAccount(mintAuthority)
+
       outcomeA = await createToken({ connection, wallet, mintAuthority })
       outcomeB = await createToken({ connection, wallet, mintAuthority })
 
@@ -125,7 +126,8 @@ describe('system', () => {
   describe('#mint()', () => {
     const firstMintAmount = new anchor.BN(1 * 1e8)
     it('1st mint', async () => {
-      const { userWallet } = await createAccountWithCollateral({
+      // We give the user an account with USD
+      const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
         vault,
         collateralToken,
         mintAuthority: wallet,
@@ -138,7 +140,10 @@ describe('system', () => {
         systemProgram,
         userTokenAccount, // To
         mintAuthority,
-        mintAmount: firstMintAmount
+        mintAmount: firstMintAmount,
+        vault,
+        collateralToken,
+        userCollateralTokenAccount
       })
       const info = await outcomeA.getAccountInfo(userTokenAccount)
       assert.ok(info.amount.eq(firstMintAmount))
@@ -146,7 +151,7 @@ describe('system', () => {
       // assert.ok(state.shares.eq(firstMintShares)) // Its first mint so shares will be 1e8
     })
     it('2nd mint', async () => {
-      const { userWallet } = await createAccountWithCollateral({
+      const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
         vault,
         collateralToken,
         mintAuthority: wallet,
@@ -161,14 +166,17 @@ describe('system', () => {
         systemProgram,
         userTokenAccount,
         mintAuthority,
-        mintAmount: firstMintAmount
+        mintAmount: firstMintAmount,
+        vault,
+        collateralToken,
+        userCollateralTokenAccount
       })
       const info = await outcomeA.getAccountInfo(userTokenAccount)
       assert.ok(info.amount.eq(firstMintAmount))
     })
     it('3rd mint', async () => {
       const mintAmount = firstMintAmount.div(new anchor.BN(3)) // Mint 1/3
-      const { userWallet } = await createAccountWithCollateral({
+      const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
         vault,
         collateralToken,
         mintAuthority: wallet,
@@ -182,7 +190,10 @@ describe('system', () => {
         systemProgram,
         userTokenAccount,
         mintAuthority,
-        mintAmount: mintAmount
+        mintAmount: mintAmount,
+        vault,
+        collateralToken,
+        userCollateralTokenAccount
       })
       const info = await outcomeA.getAccountInfo(userTokenAccount)
       assert.ok(info.amount.eq(mintAmount))
