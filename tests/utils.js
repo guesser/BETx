@@ -58,7 +58,8 @@ const mintUsd = async ({
   mintAuthority,
   vault,
   collateralToken,
-  userCollateralTokenAccount
+  userCollateralTokenAccount,
+  outcomes,
 }) => {
   let amount = new anchor.BN(10 * 1e8)
   const state = await systemProgram.state()
@@ -72,6 +73,7 @@ const mintUsd = async ({
       owner: userWallet.publicKey,
       collateralAccount: vault
     },
+    remainingAccounts: outcomes,
     signers: [userWallet],
     instructions: [
       Token.createTransferInstruction(

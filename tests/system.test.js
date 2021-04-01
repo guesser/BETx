@@ -29,6 +29,7 @@ describe('system', () => {
   let outcomeA
   let outcomeB
   let nonce
+  let outcomes
   before(async () => {
     try {
       await systemProgram.state.rpc.new({
@@ -47,7 +48,7 @@ describe('system', () => {
       outcomeA = await createToken({ connection, wallet, mintAuthority })
       outcomeB = await createToken({ connection, wallet, mintAuthority })
 
-      let outcomes = [
+      outcomes = [
         outcomeA.publicKey,
         outcomeB.publicKey,
       ]
@@ -90,6 +91,7 @@ describe('system', () => {
     assert.ok(vaultInfo.amount.eq(new anchor.BN(0)))
   })
 
+  /*
   it('Try to re-initialState', async () => {
     try {
       await systemProgram.state.rpc.initialize(
@@ -122,6 +124,7 @@ describe('system', () => {
       assert.ok(vaultInfo.amount.eq(new anchor.BN(0)))
     }
   })
+  */
 
   describe('#mint()', () => {
     const firstMintAmount = new anchor.BN(1 * 1e8)
@@ -143,7 +146,8 @@ describe('system', () => {
         mintAmount: firstMintAmount,
         vault,
         collateralToken,
-        userCollateralTokenAccount
+        userCollateralTokenAccount,
+        outcomes,
       })
       const info = await outcomeA.getAccountInfo(userTokenAccount)
       assert.ok(info.amount.eq(firstMintAmount))
@@ -169,7 +173,8 @@ describe('system', () => {
         mintAmount: firstMintAmount,
         vault,
         collateralToken,
-        userCollateralTokenAccount
+        userCollateralTokenAccount,
+        outcomes,
       })
       const info = await outcomeA.getAccountInfo(userTokenAccount)
       assert.ok(info.amount.eq(firstMintAmount))
@@ -193,7 +198,8 @@ describe('system', () => {
         mintAmount: mintAmount,
         vault,
         collateralToken,
-        userCollateralTokenAccount
+        userCollateralTokenAccount,
+        outcomes,
       })
       const info = await outcomeA.getAccountInfo(userTokenAccount)
       assert.ok(info.amount.eq(mintAmount))

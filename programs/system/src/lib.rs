@@ -2,9 +2,9 @@
 
 use anchor_lang::prelude::*;
 use anchor_spl::token::{
-    self, 
+    self,
     MintTo,
-    TokenAccount, 
+    TokenAccount,
     //Transfer
 };
 
@@ -86,6 +86,8 @@ mod system {
         }
 
         pub fn mint_complete_sets(&mut self, ctx: Context<Mint>, amount: u64) -> Result<()> {
+            let outcomes: &[AccountInfo] = ctx.remaining_accounts;
+
             let deposited = ctx.accounts.collateral_account.amount;
             if deposited == 0 {
                 return Err(ErrorCode::ZeroDeposit.into());
@@ -95,21 +97,17 @@ mod system {
             let seeds = &[self.signer.as_ref(), &[self.nonce]];
             let signer = &[&seeds[..]];
 
-            let cpi_accounts = MintTo {
-                mint: ctx.accounts.mint.to_account_info(),
-                to: ctx.accounts.to.to_account_info(),
-                authority: ctx.accounts.authority.to_account_info(),
-            };
-            let cpi_program = ctx.accounts.token_program.to_account_info();
-            let cpi_context = CpiContext::new(cpi_program, cpi_accounts).with_signer(signer);
+            for n in 0..outcomes.len() + 1 {
+                let cpi_accounts = MintTo {
+                    mint: ctx.accounts.mint.to_account_info(),
+                    to: ctx.accounts.to.to_account_info(),
+                    authority: ctx.accounts.authority.to_account_info(),
+                };
+                let cpi_program = ctx.accounts.token_program.to_account_info();
+                let cpi_context = CpiContext::new(cpi_program, cpi_accounts).with_signer(signer);
 
-            // let mint_token_adddress = ctx.accounts.mint.to_account_info().clone().key;
-            // for pk in self.outcomes.iter() {
-                // let cpi_ctx = CpiContext::from(&*ctx.accounts).with_signer(signer);
-                // token::mint_to(cpi_ctx, amount)?;
-            token::mint_to(cpi_context, amount)?;
-            // }
-
+                token::mint_to(cpi_context, amount)?;
+            }
 
             Ok(())
         }
@@ -133,17 +131,6 @@ pub struct Mint<'info> {
     #[account(signer)]
     owner: AccountInfo<'info>,
     pub collateral_account: CpiAccount<'info, TokenAccount>,
-}
-impl<'a, 'b, 'c, 'info> From<&Mint<'info>> for CpiContext<'a, 'b, 'c, 'info, MintTo<'info>> {
-    fn from(accounts: &Mint<'info>) -> CpiContext<'a, 'b, 'c, 'info, MintTo<'info>> {
-        let cpi_accounts = MintTo {
-            mint: accounts.mint.to_account_info(),
-            to: accounts.to.to_account_info(),
-            authority: accounts.authority.to_account_info(),
-        };
-        let cpi_program = accounts.token_program.to_account_info();
-        CpiContext::new(cpi_program, cpi_accounts)
-    }
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Default, Clone)]
