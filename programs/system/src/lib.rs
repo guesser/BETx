@@ -92,7 +92,6 @@ mod system {
             if deposited == 0 {
                 return Err(ErrorCode::ZeroDeposit.into());
             }
-            msg!("Deposited: {}", deposited);
 
             let seeds = &[self.signer.as_ref(), &[self.nonce]];
             let signer = &[&seeds[..]];
