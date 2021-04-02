@@ -45,17 +45,8 @@ describe('system', () => {
       collateralToken = await createToken({ connection, wallet, mintAuthority: wallet.publicKey })
       vault = await collateralToken.createAccount(mintAuthority)
 
-      outcomeA = await createToken({ connection, wallet, mintAuthority })
       outcomeB = await createToken({ connection, wallet, mintAuthority })
-
-      outcomes = [
-        outcomeA.publicKey,
-        outcomeB.publicKey,
-      ]
-      let outcomesName = [
-        'USD',
-        'DAI',
-      ]
+      outcomeA = await createToken({ connection, wallet, mintAuthority })
 
       await systemProgram.state.rpc.initialize(
         _nonce, // Nonce
@@ -64,10 +55,9 @@ describe('system', () => {
         collateralToken.publicKey, // Collateral Token
         vault, // Vault
         mintAuthority, // Mint Authority
-        outcomes,
-        // outcomesName,
-        2,
         new anchor.BN(1617100690),
+        outcomeA.publicKey,
+        outcomeB.publicKey,
         {
           accounts: {}
         }
@@ -84,8 +74,8 @@ describe('system', () => {
     assert.ok(state.collateralToken.equals(collateralToken.publicKey))
     assert.ok(state.vault.equals(vault))
     // initaly we will have collateral and sythetic usd
-    assert.ok(state.outcomes.length === 2)
-    assert.ok(state.outcomes[0].address.equals(outcomeA.publicKey))
+    assert.ok(state.outcome1.address.equals(outcomeA.publicKey))
+    assert.ok(state.outcome2.address.equals(outcomeB.publicKey))
     // initial collateralBalance
     const vaultInfo = await collateralToken.getAccountInfo(vault)
     assert.ok(vaultInfo.amount.eq(new anchor.BN(0)))
@@ -137,19 +127,22 @@ describe('system', () => {
         systemProgram,
         amount: new anchor.BN(100 * 1e8)
       })
-      const userTokenAccount = await outcomeA.createAccount(userWallet.publicKey)
+      const userTokenAccountA = await outcomeA.createAccount(userWallet.publicKey)
+      const userTokenAccountB = await outcomeB.createAccount(userWallet.publicKey)
       await mintUsd({
         userWallet,
         systemProgram,
-        userTokenAccount, // To
+        userTokenAccountA, // To
+        userTokenAccountB, // To
         mintAuthority,
         mintAmount: firstMintAmount,
         vault,
         collateralToken,
         userCollateralTokenAccount,
-        outcomes,
+        outcomeA,
+        outcomeB,
       })
-      const info = await outcomeA.getAccountInfo(userTokenAccount)
+      const info = await outcomeA.getAccountInfo(userTokenAccountA)
       assert.ok(info.amount.eq(firstMintAmount))
       // const account = await systemProgram.account.userAccount(userSystemAccount.publicKey)
       // assert.ok(state.shares.eq(firstMintShares)) // Its first mint so shares will be 1e8
@@ -163,20 +156,23 @@ describe('system', () => {
         amount: new anchor.BN(100 * 1e8)
       })
 
-      const userTokenAccount = await outcomeA.createAccount(userWallet.publicKey)
+      const userTokenAccountA = await outcomeA.createAccount(userWallet.publicKey)
+      const userTokenAccountB = await outcomeB.createAccount(userWallet.publicKey)
       // We mint same amount
       await mintUsd({
         userWallet,
         systemProgram,
-        userTokenAccount,
+        userTokenAccountA,
+        userTokenAccountB,
         mintAuthority,
         mintAmount: firstMintAmount,
         vault,
         collateralToken,
         userCollateralTokenAccount,
-        outcomes,
+        outcomeA,
+        outcomeB,
       })
-      const info = await outcomeA.getAccountInfo(userTokenAccount)
+      const info = await outcomeA.getAccountInfo(userTokenAccountA)
       assert.ok(info.amount.eq(firstMintAmount))
     })
     it('3rd mint', async () => {
@@ -188,20 +184,23 @@ describe('system', () => {
         systemProgram,
         amount: new anchor.BN(100 * 1e8)
       })
-      const userTokenAccount = await outcomeA.createAccount(userWallet.publicKey)
+      const userTokenAccountA = await outcomeA.createAccount(userWallet.publicKey)
+      const userTokenAccountB = await outcomeB.createAccount(userWallet.publicKey)
       // We mint same amount
       await mintUsd({
         userWallet,
         systemProgram,
-        userTokenAccount,
+        userTokenAccountA,
+        userTokenAccountB,
         mintAuthority,
         mintAmount: mintAmount,
         vault,
         collateralToken,
         userCollateralTokenAccount,
-        outcomes,
+        outcomeA,
+        outcomeB,
       })
-      const info = await outcomeA.getAccountInfo(userTokenAccount)
+      const info = await outcomeA.getAccountInfo(userTokenAccountA)
       assert.ok(info.amount.eq(mintAmount))
     })
   })

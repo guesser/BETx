@@ -54,26 +54,28 @@ const mintUsd = async ({
   userWallet,
   systemProgram,
   mintAmount,
-  userTokenAccount,
+  userTokenAccountA,
+  userTokenAccountB,
   mintAuthority,
   vault,
   collateralToken,
   userCollateralTokenAccount,
-  outcomes,
+  outcomeA,
+  outcomeB,
 }) => {
   let amount = new anchor.BN(10 * 1e8)
-  const state = await systemProgram.state()
   await systemProgram.state.rpc.mintCompleteSets(mintAmount, {
     accounts: {
       authority: mintAuthority,
-      mint: state.outcomes[0].address,
-      to: userTokenAccount,
+      to1: userTokenAccountA,
+      to2: userTokenAccountB,
       tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
-      clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      // clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
       owner: userWallet.publicKey,
-      collateralAccount: vault
+      collateralAccount: vault,
+      outcome1: outcomeA.publicKey,
+      outcome2: outcomeB.publicKey,
     },
-    remainingAccounts: outcomes,
     signers: [userWallet],
     instructions: [
       Token.createTransferInstruction(

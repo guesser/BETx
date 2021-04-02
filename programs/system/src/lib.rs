@@ -20,22 +20,24 @@ mod system {
         pub mint_authority: Pubkey,
         pub collateral_token: Pubkey,
         pub vault: Pubkey,
-        pub outcomes: Vec<Outcome>,
         pub winner: Pubkey,
         pub expiration_time: u64,
+        pub outcome1: Outcome,
+        pub outcome2: Outcome,
     }
 
     impl InternalState {
-        pub const ASSETS_SIZE: usize = 10;
         pub fn new(_ctx: Context<New>) -> Result<Self> {
-            let mut outcomes: Vec<Outcome> = vec![];
-            outcomes.resize(
-                Self::ASSETS_SIZE,
-                Outcome {
-                    // ticker: vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-                    ..Default::default()
-                },
-            );
+            let outcome1 = Outcome {
+                address: Pubkey::default(),
+                ticker: "YES".as_bytes().to_vec(),
+                decimals: 8,
+            };
+            let outcome2 = Outcome {
+                address: Pubkey::default(),
+                ticker: "NO".as_bytes().to_vec(),
+                decimals: 8,
+            };
             Ok(Self {
                 nonce: 0,
                 signer: Pubkey::default(),
@@ -45,7 +47,8 @@ mod system {
                 vault: Pubkey::default(),
                 winner: Pubkey::default(),
                 expiration_time: 0,
-                outcomes,
+                outcome1,
+                outcome2
             })
         }
         pub fn initialize(
@@ -57,10 +60,9 @@ mod system {
             collateral_token: Pubkey,
             vault: Pubkey,
             mint_authority: Pubkey,
-            outcomes: Vec<Pubkey>,
-            // outcomes_name: Vec<&String>,
-            outcomes_number: u8,
             expiration_time: u64,
+            outcome1: Pubkey,
+            outcome2: Pubkey
         ) -> Result<()> {
             if self.expiration_time != 0 || self.oracle != Pubkey::default() {
                 return Err(ErrorCode::ProgramInitialized.into());
@@ -72,22 +74,13 @@ mod system {
             self.vault = vault;
             self.mint_authority = mint_authority;
             self.expiration_time = expiration_time;
-            let mut final_outcomes: Vec<Outcome> = vec![];
-            for n in 0..outcomes_number {
-                final_outcomes.push(Outcome {
-                    decimals: 8,
-                    address: outcomes[usize::from(n)],
-                    // ticker: outcomes_name[usize::from(n)].as_bytes().to_vec(),
-                })
-            }
+            self.outcome1.address = outcome1;
+            self.outcome2.address = outcome2;
 
-            self.outcomes = final_outcomes;
             Ok(())
         }
 
         pub fn mint_complete_sets(&mut self, ctx: Context<Mint>, amount: u64) -> Result<()> {
-            let outcomes: &[AccountInfo] = ctx.remaining_accounts;
-
             let deposited = ctx.accounts.collateral_account.amount;
             if deposited == 0 {
                 return Err(ErrorCode::ZeroDeposit.into());
@@ -96,17 +89,27 @@ mod system {
             let seeds = &[self.signer.as_ref(), &[self.nonce]];
             let signer = &[&seeds[..]];
 
-            for n in 0..outcomes.len() + 1 {
-                let cpi_accounts = MintTo {
-                    mint: ctx.accounts.mint.to_account_info(),
-                    to: ctx.accounts.to.to_account_info(),
-                    authority: ctx.accounts.authority.to_account_info(),
-                };
-                let cpi_program = ctx.accounts.token_program.to_account_info();
-                let cpi_context = CpiContext::new(cpi_program, cpi_accounts).with_signer(signer);
+            // Check the outcomes passed are the ones stored
 
-                token::mint_to(cpi_context, amount)?;
-            }
+            // Outcome 1
+            let cpi_accounts1 = MintTo {
+                mint: ctx.accounts.outcome1.to_account_info(),
+                to: ctx.accounts.to1.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info(),
+            };
+            let cpi_program1 = ctx.accounts.token_program.to_account_info();
+            let cpi_context1 = CpiContext::new(cpi_program1, cpi_accounts1).with_signer(signer);
+            token::mint_to(cpi_context1, amount)?;
+
+            // Outcome 2
+            let cpi_accounts2 = MintTo {
+                mint: ctx.accounts.outcome2.to_account_info(),
+                to: ctx.accounts.to2.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info(),
+            };
+            let cpi_program2 = ctx.accounts.token_program.to_account_info();
+            let cpi_context2 = CpiContext::new(cpi_program2, cpi_accounts2).with_signer(signer);
+            token::mint_to(cpi_context2, amount)?;
 
             Ok(())
         }
@@ -122,21 +125,25 @@ pub struct Initialize {}
 pub struct Mint<'info> {
     pub authority: AccountInfo<'info>,
     #[account(mut)]
-    pub mint: AccountInfo<'info>,
+    pub to1: AccountInfo<'info>,
     #[account(mut)]
-    pub to: AccountInfo<'info>,
+    pub to2: AccountInfo<'info>,
     pub token_program: AccountInfo<'info>,
-    pub clock: Sysvar<'info, Clock>,
+    // pub clock: Sysvar<'info, Clock>,
     #[account(signer)]
     owner: AccountInfo<'info>,
     pub collateral_account: CpiAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub outcome2: AccountInfo<'info>,
+    #[account(mut)]
+    pub outcome1: AccountInfo<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Default, Clone)]
 pub struct Outcome {
     pub address: Pubkey,
     pub decimals: u8,
-    // pub ticker: Vec<u8>,
+    pub ticker: Vec<u8>,
 }
 
 #[error]
