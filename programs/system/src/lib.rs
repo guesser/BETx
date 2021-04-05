@@ -20,6 +20,7 @@ mod system {
         pub oracle: Pubkey,
         pub mint_authority: Pubkey,
         pub collateral_token: Pubkey,
+        pub collateral_minted: u64,
         pub vault: Pubkey,
         pub winner: Pubkey,
         pub expiration_time: i64,
@@ -45,6 +46,7 @@ mod system {
                 oracle: Pubkey::default(),
                 mint_authority: Pubkey::default(),
                 collateral_token: Pubkey::default(),
+                collateral_minted: 0,
                 vault: Pubkey::default(),
                 winner: Pubkey::default(),
                 expiration_time: 0,
@@ -82,12 +84,14 @@ mod system {
         }
 
         pub fn mint_complete_sets(&mut self, ctx: Context<Mint>, amount: u64) -> Result<()> {
-            let deposited = ctx.accounts.collateral_account.amount;
-            // TODO: this deposited need to be checked with the actual minted amount in a
-            // self._amount
+            let deposited = ctx.accounts.collateral_account.amount - self.collateral_minted;
             if deposited == 0 {
                 return Err(ErrorCode::ZeroDeposit.into());
             }
+            if deposited != amount {
+                return Err(ErrorCode::DespositedMismatch.into());
+            }
+
 
             let seeds = &[self.signer.as_ref(), &[self.nonce]];
             let signer = &[&seeds[..]];
@@ -113,6 +117,8 @@ mod system {
             let cpi_program2 = ctx.accounts.token_program.to_account_info();
             let cpi_context2 = CpiContext::new(cpi_program2, cpi_accounts2).with_signer(signer);
             token::mint_to(cpi_context2, amount)?;
+
+            self.collateral_minted = ctx.accounts.collateral_account.amount;
 
             Ok(())
         }
@@ -249,4 +255,6 @@ pub enum ErrorCode {
     OraclesMismatch,
     #[msg("Winner was already set")]
     WinnerAlreadySet,
+    #[msg("Desposited mismatches the amount parameter")]
+    DespositedMismatch,
 }

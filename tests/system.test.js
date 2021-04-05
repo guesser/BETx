@@ -206,7 +206,6 @@ describe('system', () => {
       const info = await outcomeA.getAccountInfo(userTokenAccountA)
       assert.ok(info.amount.eq(mintAmount))
     })
-  })
 
   describe('Burning Complete Sets', () => {
     const firstMintAmount = new anchor.BN(10 * 1e8)
