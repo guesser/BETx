@@ -21,7 +21,7 @@ mod system {
         pub collateral_token: Pubkey,
         pub vault: Pubkey,
         pub winner: Pubkey,
-        pub expiration_time: u64,
+        pub expiration_time: i64,
         pub outcome1: Outcome,
         pub outcome2: Outcome,
     }
@@ -60,7 +60,7 @@ mod system {
             collateral_token: Pubkey,
             vault: Pubkey,
             mint_authority: Pubkey,
-            expiration_time: u64,
+            expiration_time: i64,
             outcome1: Pubkey,
             outcome2: Pubkey
         ) -> Result<()> {
@@ -113,6 +113,19 @@ mod system {
 
             Ok(())
         }
+
+        pub fn resolve_market(&mut self, ctx: Context<FinishMarket>) -> Result<()> {
+            if ctx.accounts.clock.unix_timestamp < self.expiration_time {
+                return Err(ErrorCode::ExpirationTimeNotPassed.into());
+            }
+            if ctx.accounts.oracle.key != &self.oracle {
+                return Err(ErrorCode::OraclesMismatch.into());
+            }
+
+            self.winner = *ctx.accounts.winner.key;
+
+            Ok(())
+        }
     }
 }
 
@@ -146,6 +159,15 @@ pub struct Outcome {
     pub ticker: Vec<u8>,
 }
 
+
+#[derive(Accounts)]
+pub struct FinishMarket<'info> {
+    #[account(signer)]
+    oracle: AccountInfo<'info>,
+    winner: AccountInfo<'info>,
+    clock: Sysvar<'info, Clock>,
+}
+
 #[error]
 pub enum ErrorCode {
     #[msg("Program already Initialized")]
@@ -156,4 +178,8 @@ pub enum ErrorCode {
     NotSyntheticUsd,
     #[msg("Deposited zero")]
     ZeroDeposit,
+    #[msg("Expiration time not passed yet")]
+    ExpirationTimeNotPassed,
+    #[msg("Oracles don't match")]
+    OraclesMismatch,
 }

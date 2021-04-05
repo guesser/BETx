@@ -204,4 +204,19 @@ describe('system', () => {
       assert.ok(info.amount.eq(mintAmount))
     })
   })
+  describe('Resolving the market', () => {
+    it('should allow you to resolve the market', async () => {
+      await systemProgram.state.rpc.resolveMarket({
+        accounts: {
+          oracle: wallet.publicKey,
+          winner: outcomeA.publicKey,
+          clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        },
+        signers: [wallet],
+      })
+
+      const state = await systemProgram.state()
+      assert.ok(state.winner.equals(outcomeA.publicKey))
+    })
+  })
 })
