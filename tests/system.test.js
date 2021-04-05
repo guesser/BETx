@@ -1,7 +1,7 @@
 /* eslint-disable new-cap */
 const anchor = require('@project-serum/anchor')
 const assert = require('assert')
-// const TokenInstructions = require('@project-serum/serum').TokenInstructions
+const TokenInstructions = require('@project-serum/serum').TokenInstructions
 // const { u64, Token } = require('@solana/spl-token')
 
 const {
@@ -30,6 +30,7 @@ describe('system', () => {
   let outcomeB
   let nonce
   let outcomes
+
   before(async () => {
     try {
       await systemProgram.state.rpc.new({
@@ -147,6 +148,7 @@ describe('system', () => {
       // const account = await systemProgram.account.userAccount(userSystemAccount.publicKey)
       // assert.ok(state.shares.eq(firstMintShares)) // Its first mint so shares will be 1e8
     })
+
     it('2nd mint', async () => {
       const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
         vault,
@@ -175,6 +177,7 @@ describe('system', () => {
       const info = await outcomeA.getAccountInfo(userTokenAccountA)
       assert.ok(info.amount.eq(firstMintAmount))
     })
+
     it('3rd mint', async () => {
       const mintAmount = firstMintAmount.div(new anchor.BN(3)) // Mint 1/3
       const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
@@ -204,6 +207,7 @@ describe('system', () => {
       assert.ok(info.amount.eq(mintAmount))
     })
   })
+
   describe('Resolving the market', () => {
     it('should allow you to resolve the market', async () => {
       await systemProgram.state.rpc.resolveMarket({
@@ -217,6 +221,80 @@ describe('system', () => {
 
       const state = await systemProgram.state()
       assert.ok(state.winner.equals(outcomeA.publicKey))
+    })
+  })
+
+  describe('Redeem outcome tokens', () => {
+    it('should allow redeem the outcome tokens', async () => {
+      const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
+        vault,
+        collateralToken,
+        mintAuthority: wallet,
+        systemProgram,
+        amount: new anchor.BN(32)
+      })
+
+      const userTokenAccountA = await outcomeA.createAccount(userWallet.publicKey)
+      const userTokenAccountB = await outcomeB.createAccount(userWallet.publicKey)
+
+      assert.ok((await collateralToken.getAccountInfo(userCollateralTokenAccount)).amount.eq(new anchor.BN(32)))
+      assert.ok((await outcomeA.getAccountInfo(userTokenAccountA)).amount.eq(new anchor.BN(0)))
+      assert.ok((await outcomeB.getAccountInfo(userTokenAccountB)).amount.eq(new anchor.BN(0)))
+
+      console.log({
+        userCollateralWallet: await collateralToken.getAccountInfo(userCollateralTokenAccount),
+        userCollateralTokenAccountA: await outcomeA.getAccountInfo(userTokenAccountA),
+        userCollateralTokenAccountB: await outcomeB.getAccountInfo(userTokenAccountB),
+      })
+
+      // We mint same amount
+      await mintUsd({
+        userWallet,
+        systemProgram,
+        userTokenAccountA,
+        userTokenAccountB,
+        mintAuthority,
+        mintAmount: new anchor.BN(8),
+        vault,
+        collateralToken,
+        userCollateralTokenAccount,
+        outcomeA,
+        outcomeB,
+      })
+
+      assert.ok((await collateralToken.getAccountInfo(userCollateralTokenAccount)).amount.eq(new anchor.BN(24)))
+      assert.ok((await outcomeA.getAccountInfo(userTokenAccountA)).amount.eq(new anchor.BN(8)))
+      assert.ok((await outcomeB.getAccountInfo(userTokenAccountB)).amount.eq(new anchor.BN(8)))
+
+      console.log({
+        userCollateralWallet: await collateralToken.getAccountInfo(userCollateralTokenAccount),
+        userCollateralTokenAccountA: await outcomeA.getAccountInfo(userTokenAccountA),
+        userCollateralTokenAccountB: await outcomeB.getAccountInfo(userTokenAccountB),
+      })
+
+      await systemProgram.state.rpc.redeem(
+        new anchor.BN(8),
+        {
+        accounts: {
+          authority: mintAuthority,
+          to: userCollateralTokenAccount,
+          tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
+          owner: wallet.publicKey,
+          collateralAccount: vault,
+          outcome1: outcomeA.publicKey,
+          outcome2: outcomeB.publicKey,
+        },
+      })
+
+      assert.ok((await collateralToken.getAccountInfo(userCollateralTokenAccount)).amount.eq(new anchor.BN(32)))
+      assert.ok((await outcomeA.getAccountInfo(userTokenAccountA)).amount.eq(new anchor.BN(8)))
+      assert.ok((await outcomeB.getAccountInfo(userTokenAccountB)).amount.eq(new anchor.BN(8)))
+
+      console.log({
+        userCollateralWallet: await collateralToken.getAccountInfo(userCollateralTokenAccount),
+        userCollateralTokenAccountA: await outcomeA.getAccountInfo(userTokenAccountA),
+        userCollateralTokenAccountB: await outcomeB.getAccountInfo(userTokenAccountB),
+      })
     })
   })
 })

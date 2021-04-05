@@ -63,7 +63,6 @@ const mintUsd = async ({
   outcomeA,
   outcomeB,
 }) => {
-  let amount = new anchor.BN(10 * 1e8)
   await systemProgram.state.rpc.mintCompleteSets(mintAmount, {
     accounts: {
       authority: mintAuthority,
@@ -84,7 +83,7 @@ const mintUsd = async ({
         vault,
         userWallet.publicKey,
         [],
-        tou64(amount.toString())
+        tou64(mintAmount.toString())
       )
     ]
   })
