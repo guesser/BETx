@@ -207,7 +207,7 @@ describe('system', () => {
       assert.ok(info.amount.eq(mintAmount))
     })
   })
-  
+
   describe('Burning Complete Sets', () => {
     const firstMintAmount = new anchor.BN(10 * 1e8)
     const firstBurnAmount = new anchor.BN(1 * 1e8)
@@ -273,6 +273,21 @@ describe('system', () => {
 
       const state = await systemProgram.state()
       assert.ok(state.winner.equals(outcomeA.publicKey))
+    })
+    it('shouldnt allow to resolve the market twice', async () => {
+      try {
+        await systemProgram.state.rpc.resolveMarket({
+          accounts: {
+            oracle: wallet.publicKey,
+            winner: outcomeA.publicKey,
+            clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+          },
+          signers: [wallet],
+        })
+        assert.ok(true, false)
+      } catch (error) {
+        assert.ok(true, true)
+      }
     })
   })
 

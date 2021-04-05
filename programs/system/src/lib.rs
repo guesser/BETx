@@ -163,6 +163,9 @@ mod system {
             if ctx.accounts.oracle.key != &self.oracle {
                 return Err(ErrorCode::OraclesMismatch.into());
             }
+            if self.winner != Pubkey::default() {
+                return Err(ErrorCode::WinnerAlreadySet.into());
+            }
 
             self.winner = *ctx.accounts.winner.key;
 
@@ -244,4 +247,6 @@ pub enum ErrorCode {
     ExpirationTimeNotPassed,
     #[msg("Oracles don't match")]
     OraclesMismatch,
+    #[msg("Winner was already set")]
+    WinnerAlreadySet,
 }
