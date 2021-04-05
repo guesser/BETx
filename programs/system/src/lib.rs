@@ -3,9 +3,10 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{
     self,
+    Burn,
+    //Transfer
     MintTo,
     TokenAccount,
-    //Transfer
 };
 
 #[program]
@@ -48,7 +49,7 @@ mod system {
                 winner: Pubkey::default(),
                 expiration_time: 0,
                 outcome1,
-                outcome2
+                outcome2,
             })
         }
         pub fn initialize(
@@ -62,7 +63,7 @@ mod system {
             mint_authority: Pubkey,
             expiration_time: i64,
             outcome1: Pubkey,
-            outcome2: Pubkey
+            outcome2: Pubkey,
         ) -> Result<()> {
             if self.expiration_time != 0 || self.oracle != Pubkey::default() {
                 return Err(ErrorCode::ProgramInitialized.into());
@@ -82,6 +83,8 @@ mod system {
 
         pub fn mint_complete_sets(&mut self, ctx: Context<Mint>, amount: u64) -> Result<()> {
             let deposited = ctx.accounts.collateral_account.amount;
+            // TODO: this deposited need to be checked with the actual minted amount in a
+            // self._amount
             if deposited == 0 {
                 return Err(ErrorCode::ZeroDeposit.into());
             }
@@ -110,6 +113,32 @@ mod system {
             let cpi_program2 = ctx.accounts.token_program.to_account_info();
             let cpi_context2 = CpiContext::new(cpi_program2, cpi_accounts2).with_signer(signer);
             token::mint_to(cpi_context2, amount)?;
+
+            Ok(())
+        }
+
+        pub fn redeem_complete_sets(&mut self, ctx: Context<RedeemCompleteSets>, amount: u64) -> Result<()> {
+            let seeds = &[self.signer.as_ref(), &[self.nonce]];
+            let signer = &[&seeds[..]];
+
+            {
+                let cpi_accounts = Burn {
+                    mint: ctx.accounts.outcome1.to_account_info(),
+                    to: ctx.accounts.to1.to_account_info(),
+                    authority: ctx.accounts.authority.to_account_info(),
+                };
+                let cpi_program = ctx.accounts.token_program.to_account_info();
+                let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts).with_signer(signer);
+                token::burn(cpi_ctx, amount)?;
+            }
+            let cpi_accounts = Burn {
+                mint: ctx.accounts.outcome2.to_account_info(),
+                to: ctx.accounts.to2.to_account_info(),
+                authority: ctx.accounts.authority.to_account_info(),
+            };
+            let cpi_program = ctx.accounts.token_program.to_account_info();
+            let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts).with_signer(signer);
+            token::burn(cpi_ctx, amount)?;
 
             Ok(())
         }
@@ -152,13 +181,30 @@ pub struct Mint<'info> {
     pub outcome1: AccountInfo<'info>,
 }
 
+#[derive(Accounts)]
+pub struct RedeemCompleteSets<'info> {
+    pub authority: AccountInfo<'info>,
+    #[account(mut)]
+    pub to1: AccountInfo<'info>,
+    #[account(mut)]
+    pub to2: AccountInfo<'info>,
+    #[account(mut)]
+    pub token_program: AccountInfo<'info>,
+    #[account(signer)]
+    owner: AccountInfo<'info>,
+    pub collateral_account: CpiAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub outcome1: AccountInfo<'info>,
+    #[account(mut)]
+    pub outcome2: AccountInfo<'info>,
+}
+
 #[derive(AnchorSerialize, AnchorDeserialize, PartialEq, Default, Clone)]
 pub struct Outcome {
     pub address: Pubkey,
     pub decimals: u8,
     pub ticker: Vec<u8>,
 }
-
 
 #[derive(Accounts)]
 pub struct FinishMarket<'info> {
