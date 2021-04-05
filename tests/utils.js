@@ -28,26 +28,52 @@ const createAccountWithCollateral = async ({
     tou64(amount.toString())
   )
 
-  /*
-  await systemProgram.state.rpc.deposit({
+  return { userWallet, userCollateralTokenAccount }
+}
+
+const redeemCompleteSets = async ({
+  userWallet,
+  systemProgram,
+  mintAmount,
+  userTokenAccountA,
+  userTokenAccountB,
+  mintAuthority,
+  vault,
+  outcomeA,
+  outcomeB,
+  userCollateralTokenAccount,
+}) => {
+  const approveTx1 = Token.createApproveInstruction(
+    outcomeA.programId,
+    userTokenAccountA,
+    mintAuthority,
+    userWallet.publicKey,
+    [],
+    tou64(mintAmount)
+  )
+  const approveTx2 = Token.createApproveInstruction(
+    outcomeB.programId,
+    userTokenAccountB,
+    mintAuthority,
+    userWallet.publicKey,
+    [],
+    tou64(mintAmount)
+  )
+  let result = await systemProgram.state.rpc.redeemCompleteSets(mintAmount, {
     accounts: {
-      userAccount: userAccount.publicKey,
-      collateralAccount: collateralAccount
+      to: userCollateralTokenAccount,
+      authority: mintAuthority,
+      to1: userTokenAccountA,
+      to2: userTokenAccountB,
+      tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
+      owner: userWallet.publicKey,
+      collateralAccount: vault,
+      outcome1: outcomeA.publicKey,
+      outcome2: outcomeB.publicKey,
     },
     signers: [userWallet],
-    instructions: [
-      Token.createTransferInstruction(
-        collateralToken.programId,
-        userCollateralTokenAccount,
-        collateralAccount,
-        userWallet.publicKey,
-        [],
-        tou64(amount.toString())
-      )
-    ]
+    instructions: [approveTx1, approveTx2]
   })
-  */
-  return { userWallet, userCollateralTokenAccount }
 }
 
 const mintUsd = async ({
@@ -119,5 +145,6 @@ module.exports = {
   createAccountWithCollateral,
   mintUsd,
   tou64,
-  newAccountWithLamports
+  newAccountWithLamports,
+  redeemCompleteSets,
 }

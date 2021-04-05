@@ -8,6 +8,7 @@ const {
   createToken,
   createAccountWithCollateral,
   mintUsd,
+  redeemCompleteSets,
   // newAccountWithLamports
 } = require('./utils')
 
@@ -116,7 +117,6 @@ describe('system', () => {
     }
   })
   */
-
   describe('#mint()', () => {
     const firstMintAmount = new anchor.BN(1 * 1e8)
     it('1st mint', async () => {
@@ -207,6 +207,58 @@ describe('system', () => {
       assert.ok(info.amount.eq(mintAmount))
     })
   })
+  
+  describe('Burning Complete Sets', () => {
+    const firstMintAmount = new anchor.BN(10 * 1e8)
+    const firstBurnAmount = new anchor.BN(1 * 1e8)
+    it('should mint and then burn a lower amount', async () => {
+      // We give the user an account with USD
+      const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
+        vault,
+        collateralToken,
+        mintAuthority: wallet,
+        systemProgram,
+        amount: new anchor.BN(100 * 1e8)
+      })
+
+      const userTokenAccountA = await outcomeA.createAccount(userWallet.publicKey)
+      const userTokenAccountB = await outcomeB.createAccount(userWallet.publicKey)
+      await mintUsd({
+        userWallet,
+        systemProgram,
+        userTokenAccountA, // To
+        userTokenAccountB, // To
+        mintAuthority,
+        mintAmount: firstMintAmount,
+        vault,
+        collateralToken,
+        userCollateralTokenAccount,
+        outcomeA,
+        outcomeB,
+      })
+      let info = await outcomeA.getAccountInfo(userTokenAccountA)
+      assert.ok(info.amount.eq(firstMintAmount))
+
+      await redeemCompleteSets({
+        userWallet,
+        systemProgram,
+        userTokenAccountA, // To
+        userTokenAccountB, // To
+        mintAuthority,
+        mintAmount: firstBurnAmount,
+        vault,
+        outcomeA,
+        outcomeB,
+        userCollateralTokenAccount,
+      })
+      info = await outcomeA.getAccountInfo(userTokenAccountA)
+      assert.ok(info.amount.toString(), (firstMintAmount - firstBurnAmount).toString())
+
+      info = await outcomeB.getAccountInfo(userTokenAccountB)
+      assert.ok(info.amount.toString(), (firstMintAmount - firstBurnAmount).toString())
+    })
+  })
+
 
   describe('Resolving the market', () => {
     it('should allow you to resolve the market', async () => {
@@ -224,6 +276,7 @@ describe('system', () => {
     })
   })
 
+  /*
   describe('Redeem outcome tokens', () => {
     it('should allow redeem the outcome tokens', async () => {
       const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
@@ -272,6 +325,9 @@ describe('system', () => {
         userCollateralTokenAccountB: await outcomeB.getAccountInfo(userTokenAccountB),
       })
 
+
+      
+
       await systemProgram.state.rpc.redeem(
         new anchor.BN(8),
         {
@@ -297,4 +353,5 @@ describe('system', () => {
       })
     })
   })
+  */
 })
