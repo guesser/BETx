@@ -1,13 +1,7 @@
 #![feature(proc_macro_hygiene)]
 
 use anchor_lang::prelude::*;
-use anchor_spl::token::{
-    self,
-    Burn,
-    MintTo,
-    TokenAccount,
-    Transfer
-};
+use anchor_spl::token::{self, Burn, MintTo, TokenAccount, Transfer};
 
 #[program]
 mod system {
@@ -91,12 +85,11 @@ mod system {
             if deposited != amount {
                 return Err(ErrorCode::DespositedMismatch.into());
             }
-
+            // TODO: Check the outcomes passed are the ones stored
 
             let seeds = &[self.signer.as_ref(), &[self.nonce]];
             let signer = &[&seeds[..]];
 
-            // Check the outcomes passed are the ones stored
 
             // Outcome 1
             let cpi_accounts1 = MintTo {
@@ -123,7 +116,14 @@ mod system {
             Ok(())
         }
 
-        pub fn redeem_complete_sets(&mut self, ctx: Context<RedeemCompleteSets>, amount: u64) -> Result<()> {
+        pub fn redeem_complete_sets(
+            &mut self,
+            ctx: Context<RedeemCompleteSets>,
+            amount: u64,
+        ) -> Result<()> {
+            // TODO: Check the outcomes are the ones stored
+            // TODO: Check if amount is higher than their amount
+            
             let seeds = &[self.signer.as_ref(), &[self.nonce]];
             let signer = &[&seeds[..]];
 
@@ -177,6 +177,43 @@ mod system {
 
             Ok(())
         }
+
+        pub fn claim_profits(&mut self, ctx: Context<ClaimProfits>, amount: u64) -> Result<()> {
+            if self.winner == Pubkey::default() {
+                return Err(ErrorCode::MarketNotSettled.into());
+            }
+            if self.winner != *ctx.accounts.winner_outcome.key {
+                return Err(ErrorCode::WinnerDoesNotMatch.into());
+            }
+            if amount == 0 {
+                return Err(ErrorCode::NoProfits.into());
+            }
+
+            let seeds = &[self.signer.as_ref(), &[self.nonce]];
+            let signer = &[&seeds[..]];
+
+            {
+                let cpi_accounts = Burn {
+                    mint: ctx.accounts.winner_outcome.to_account_info(),
+                    to: ctx.accounts.winner_from.to_account_info(),
+                    authority: ctx.accounts.authority.to_account_info(),
+                };
+                let cpi_program = ctx.accounts.token_program.to_account_info();
+                let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts).with_signer(signer);
+                token::burn(cpi_ctx, amount)?;
+            }
+
+            let cpi_accounts = Transfer {
+                from: ctx.accounts.collateral_account.to_account_info().clone(),
+                to: ctx.accounts.to.to_account_info().clone(),
+                authority: ctx.accounts.authority.to_account_info().clone(),
+            };
+            let cpi_program = ctx.accounts.token_program.clone();
+            let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts).with_signer(signer);
+            token::transfer(cpi_ctx, amount)?;
+
+            Ok(())
+        }
     }
 }
 
@@ -205,6 +242,7 @@ pub struct Mint<'info> {
 
 #[derive(Accounts)]
 pub struct RedeemCompleteSets<'info> {
+    // TODO: Refactor the naming of these words
     pub authority: AccountInfo<'info>,
     #[account(mut)]
     pub to: AccountInfo<'info>,
@@ -229,6 +267,23 @@ pub struct Outcome {
     pub address: Pubkey,
     pub decimals: u8,
     pub ticker: Vec<u8>,
+}
+
+#[derive(Accounts)]
+pub struct ClaimProfits<'info> {
+    pub authority: AccountInfo<'info>,
+    #[account(mut)]
+    pub winner_from: AccountInfo<'info>,
+    #[account(mut)]
+    pub to: AccountInfo<'info>,
+    #[account(mut)]
+    pub token_program: AccountInfo<'info>,
+    #[account(signer)]
+    owner: AccountInfo<'info>,
+    #[account(mut)]
+    pub collateral_account: CpiAccount<'info, TokenAccount>,
+    #[account(mut)]
+    pub winner_outcome: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
@@ -257,4 +312,10 @@ pub enum ErrorCode {
     WinnerAlreadySet,
     #[msg("Desposited mismatches the amount parameter")]
     DespositedMismatch,
+    #[msg("Market has not been settled yet")]
+    MarketNotSettled,
+    #[msg("No profits redemable")]
+    NoProfits,
+    #[msg("Winner sent is not the correct one")]
+    WinnerDoesNotMatch,
 }

@@ -31,6 +31,40 @@ const createAccountWithCollateral = async ({
   return { userWallet, userCollateralTokenAccount }
 }
 
+const claimProfits = async ({
+  userWallet,
+  systemProgram,
+  mintAmount,
+  winnerFrom,
+  mintAuthority,
+  vault,
+  winnerOutcome,
+  userCollateralTokenAccount,
+}) => {
+  const approveTx1 = Token.createApproveInstruction(
+    winnerOutcome.programId,
+    winnerFrom,
+    mintAuthority,
+    userWallet.publicKey,
+    [],
+    tou64(mintAmount)
+  )
+
+  await systemProgram.state.rpc.claimProfits(mintAmount, {
+    accounts: {
+      to: userCollateralTokenAccount,
+      authority: mintAuthority,
+      winnerFrom: winnerFrom,
+      tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
+      owner: userWallet.publicKey,
+      collateralAccount: vault,
+      winnerOutcome: winnerOutcome.publicKey,
+    },
+    signers: [userWallet],
+    instructions: [approveTx1]
+  })
+}
+
 const redeemCompleteSets = async ({
   userWallet,
   systemProgram,
@@ -147,4 +181,5 @@ module.exports = {
   tou64,
   newAccountWithLamports,
   redeemCompleteSets,
+  claimProfits,
 }
