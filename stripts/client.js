@@ -1,7 +1,15 @@
+/* eslint-disable new-cap */
 const anchor = require('@project-serum/anchor')
+const assert = require('assert')
+const TokenInstructions = require('@project-serum/serum').TokenInstructions
+// const { u64, Token } = require('@solana/spl-token')
+
 const {
   createToken,
-} = require('./utils')
+  createAccountWithCollateral,
+  mintUsd,
+} = require('../stripts/utils')
+
 const fs = require('fs')
 
 // Read the generated IDL.
@@ -19,31 +27,42 @@ anchor.setProvider(provider)
 const connection = provider.connection
 const wallet = provider.wallet.payer
 
-// Execute the RPC.
-const createMarket = async (creator, programId, connection, wallet, endTimestamp) => {
-  await program.state.rpc.new({
+const systemProgram = program
+const signer = new anchor.web3.Account()
+let collateralToken
+let mintAuthority
+let vault
+let outcomeA
+let outcomeB
+let nonce
+const firstMintAmount = new anchor.BN(1 * 1e8)
+
+const initProgram = async () => {
+
+  await systemProgram.state.rpc.new({
     accounts: {}
   })
-  const [mintAuthority, nonce] = await anchor.web3.PublicKey.findProgramAddress(
-    [creator.publicKey.toBuffer()],
-    programId
+  const [_mintAuthority, _nonce] = await anchor.web3.PublicKey.findProgramAddress(
+    [signer.publicKey.toBuffer()],
+    systemProgram.programId
   )
+  nonce = _nonce
+  mintAuthority = _mintAuthority
 
-  let collateralToken = await createToken({ connection, wallet, mintAuthority: wallet.publicKey })
-  let vault = await collateralToken.createAccount(mintAuthority)
-  let creatorCollateralTokenAccount = await collateralToken.createAccount(creator.publicKey)
+  collateralToken = await createToken({ connection, wallet, mintAuthority: wallet.publicKey })
+  vault = await collateralToken.createAccount(mintAuthority)
 
-  let outcomeB = await createToken({ connection, wallet, mintAuthority })
-  let outcomeA = await createToken({ connection, wallet, mintAuthority })
+  outcomeB = await createToken({ connection, wallet, mintAuthority })
+  outcomeA = await createToken({ connection, wallet, mintAuthority })
 
-  await program.state.rpc.initialize(
-    nonce, // Nonce
-    creator.publicKey, // Signer
+  await systemProgram.state.rpc.initialize(
+    _nonce, // Nonce
+    signer.publicKey, // Signer
     wallet.publicKey, // Oracle
     collateralToken.publicKey, // Collateral Token
     vault, // Vault
     mintAuthority, // Mint Authority
-    new anchor.BN(endTimestamp),
+    new anchor.BN(1617100690),
     outcomeA.publicKey,
     outcomeB.publicKey,
     {
@@ -51,20 +70,49 @@ const createMarket = async (creator, programId, connection, wallet, endTimestamp
     }
   )
 
+  const mintAmount = firstMintAmount.div(new anchor.BN(3)) // Mint 1/3
+  const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
+    vault,
+    collateralToken,
+    mintAuthority: wallet,
+    systemProgram,
+    amount: new anchor.BN(100 * 1e8)
+  })
+  const userTokenAccountA = await outcomeA.createAccount(userWallet.publicKey)
+  const userTokenAccountB = await outcomeB.createAccount(userWallet.publicKey)
+  // We mint same amount
+  await mintUsd({
+    userWallet,
+    systemProgram,
+    userTokenAccountA,
+    userTokenAccountB,
+    mintAuthority,
+    mintAmount: mintAmount,
+    vault,
+    collateralToken,
+    userCollateralTokenAccount,
+    outcomeA,
+    outcomeB,
+  })
+
   const data = {
-    programId: programId._bn,
+    programId: program.programId._bn,
     outcomeTokenA: outcomeA.publicKey._bn,
     outcomeTokenB: outcomeB.publicKey._bn,
     collateralToken: collateralToken.publicKey._bn,
     vault: vault._bn,
-    creatorCollateralTokenAccount: creatorCollateralTokenAccount._bn,
-    creator: creator.publicKey._bn,
+    creatorCollateralTokenAccount: userCollateralTokenAccount._bn,
+    creator: userWallet.publicKey._bn,
+    userTokenAccountA: userTokenAccountA.publicKey,
+    userTokenAccountB: userTokenAccountB.publicKey,
   }
 
-  fs.writeFileSync(`market_${new Date().getTime()}.json`, JSON.stringify(data, null, 2))
+  const fileName = `market_${new Date().getTime()}.json`
+  fs.writeFileSync(fileName, JSON.stringify(data, null, 2))
+
+  console.log('Market data saved in ' + fileName);
 }
 
-const creator = new anchor.web3.Account() //User account
-const endTimestamp = new Date().getTime() / 1000 //Set by the User
+initProgram()
 
-createMarket(creator, programId, connection, wallet, endTimestamp)
+
