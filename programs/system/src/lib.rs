@@ -89,7 +89,7 @@ mod system {
                 return Err(ErrorCode::ZeroDeposit.into());
             }
             if deposited != amount {
-                return Err(ErrorCode::DespositedMismatch.into());
+                return Err(ErrorCode::DepositedMismatch.into());
             }
 
 
@@ -256,5 +256,5 @@ pub enum ErrorCode {
     #[msg("Winner was already set")]
     WinnerAlreadySet,
     #[msg("Desposited mismatches the amount parameter")]
-    DespositedMismatch,
+    DepositedMismatch,
 }

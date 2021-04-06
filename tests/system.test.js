@@ -10,9 +10,9 @@ const {
   mintUsd,
   redeemCompleteSets,
   // newAccountWithLamports
-} = require('./utils')
+} = require('../stripts/utils')
 
-describe('system', () => {
+describe('Program', () => {
   // const provider = anchor.Provider.local('https://devnet.solana.com', {
   //   commitment: 'max',
   //   preflightCommitment: 'max',
@@ -206,6 +206,7 @@ describe('system', () => {
       const info = await outcomeA.getAccountInfo(userTokenAccountA)
       assert.ok(info.amount.eq(mintAmount))
     })
+  })
 
   describe('Burning Complete Sets', () => {
     const firstMintAmount = new anchor.BN(10 * 1e8)
@@ -366,6 +367,5 @@ describe('system', () => {
         userCollateralTokenAccountB: await outcomeB.getAccountInfo(userTokenAccountB),
       })
     })
-  })
-  */
+    */
 })
