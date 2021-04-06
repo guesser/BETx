@@ -9,6 +9,7 @@ const {
   createAccountWithCollateral,
   mintUsd,
   redeemCompleteSets,
+  claimProfits
   // newAccountWithLamports
 } = require('../stripts/utils')
 
@@ -31,6 +32,10 @@ describe('Program', () => {
   let outcomeB
   let nonce
   let outcomes
+  let finalUserTokenAccountA
+  let finalUserTokenAccountB
+  let finalUserWallet
+  let finalUserCollateralWallet
 
   before(async () => {
     try {
@@ -130,6 +135,12 @@ describe('Program', () => {
       })
       const userTokenAccountA = await outcomeA.createAccount(userWallet.publicKey)
       const userTokenAccountB = await outcomeB.createAccount(userWallet.publicKey)
+
+      finalUserTokenAccountA = userTokenAccountA
+      finalUserTokenAccountB = userTokenAccountB
+      finalUserCollateralWallet = userCollateralTokenAccount
+      finalUserWallet = userWallet
+
       await mintUsd({
         userWallet,
         systemProgram,
@@ -288,6 +299,39 @@ describe('Program', () => {
       } catch (error) {
         assert.ok(true, true)
       }
+    })
+  })
+  describe('Claiming Profits', () => {
+    const firstBurnAmount = new anchor.BN(1 * 1e8)
+    it('should be able to clean profits', async () => {
+      let info = await outcomeA.getAccountInfo(finalUserTokenAccountA)
+      let initialUserOutcomeAmount = info.amount
+      console.log('Burn amount: ', firstBurnAmount.toString())
+      console.log('Collateral Token: ', info.amount.toString())
+      info = await collateralToken.getAccountInfo(finalUserCollateralWallet)
+      let initialUserCollateralAmount = info.amount
+      console.log('Collateral Token: ', info.amount.toString())
+      console.log('-----------------------')
+
+      await claimProfits({
+        userWallet: finalUserWallet,
+        systemProgram,
+        winnerFrom: finalUserTokenAccountA,
+        mintAuthority,
+        mintAmount: firstBurnAmount,
+        vault,
+        winnerOutcome: outcomeA,
+        userCollateralTokenAccount: finalUserCollateralWallet,
+      })
+
+      info = await outcomeA.getAccountInfo(finalUserTokenAccountA)
+      let finalUserOutcomeAmount = info.amount
+      info = await collateralToken.getAccountInfo(finalUserCollateralWallet)
+      let finalUserCollateralAmount = info.amount
+      assert.ok(initialUserOutcomeAmount > finalUserOutcomeAmount)
+      assert.ok(initialUserCollateralAmount > finalUserCollateralAmount)
+      assert.ok(initialUserCollateralAmount + firstBurnAmount, finalUserCollateralAmount)
+      assert.ok((initialUserOutcomeAmount - firstBurnAmount).toString(), finalUserOutcomeAmount.toString())
     })
   })
 
