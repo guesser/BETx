@@ -8,7 +8,7 @@ const {
   createToken,
   createAccountWithCollateral,
   mintUsd,
-} = require('../stripts/utils')
+} = require('../scripts/utils')
 
 const fs = require('fs')
 

@@ -11,7 +11,7 @@ const {
   redeemCompleteSets,
   claimProfits
   // newAccountWithLamports
-} = require('../stripts/utils')
+} = require('../scripts/utils')
 
 describe('Program', () => {
   // const provider = anchor.Provider.local('https://devnet.solana.com', {
@@ -306,12 +306,8 @@ describe('Program', () => {
     it('should be able to clean profits', async () => {
       let info = await outcomeA.getAccountInfo(finalUserTokenAccountA)
       let initialUserOutcomeAmount = info.amount
-      console.log('Burn amount: ', firstBurnAmount.toString())
-      console.log('Collateral Token: ', info.amount.toString())
       info = await collateralToken.getAccountInfo(finalUserCollateralWallet)
       let initialUserCollateralAmount = info.amount
-      console.log('Collateral Token: ', info.amount.toString())
-      console.log('-----------------------')
 
       await claimProfits({
         userWallet: finalUserWallet,
@@ -334,82 +330,4 @@ describe('Program', () => {
       assert.ok((initialUserOutcomeAmount - firstBurnAmount).toString(), finalUserOutcomeAmount.toString())
     })
   })
-
-  /*
-  describe('Redeem outcome tokens', () => {
-    it('should allow redeem the outcome tokens', async () => {
-      const { userWallet, userCollateralTokenAccount } = await createAccountWithCollateral({
-        vault,
-        collateralToken,
-        mintAuthority: wallet,
-        systemProgram,
-        amount: new anchor.BN(32)
-      })
-
-      const userTokenAccountA = await outcomeA.createAccount(userWallet.publicKey)
-      const userTokenAccountB = await outcomeB.createAccount(userWallet.publicKey)
-
-      assert.ok((await collateralToken.getAccountInfo(userCollateralTokenAccount)).amount.eq(new anchor.BN(32)))
-      assert.ok((await outcomeA.getAccountInfo(userTokenAccountA)).amount.eq(new anchor.BN(0)))
-      assert.ok((await outcomeB.getAccountInfo(userTokenAccountB)).amount.eq(new anchor.BN(0)))
-
-      console.log({
-        userCollateralWallet: await collateralToken.getAccountInfo(userCollateralTokenAccount),
-        userCollateralTokenAccountA: await outcomeA.getAccountInfo(userTokenAccountA),
-        userCollateralTokenAccountB: await outcomeB.getAccountInfo(userTokenAccountB),
-      })
-
-      // We mint same amount
-      await mintUsd({
-        userWallet,
-        systemProgram,
-        userTokenAccountA,
-        userTokenAccountB,
-        mintAuthority,
-        mintAmount: new anchor.BN(8),
-        vault,
-        collateralToken,
-        userCollateralTokenAccount,
-        outcomeA,
-        outcomeB,
-      })
-
-      assert.ok((await collateralToken.getAccountInfo(userCollateralTokenAccount)).amount.eq(new anchor.BN(24)))
-      assert.ok((await outcomeA.getAccountInfo(userTokenAccountA)).amount.eq(new anchor.BN(8)))
-      assert.ok((await outcomeB.getAccountInfo(userTokenAccountB)).amount.eq(new anchor.BN(8)))
-
-      console.log({
-        userCollateralWallet: await collateralToken.getAccountInfo(userCollateralTokenAccount),
-        userCollateralTokenAccountA: await outcomeA.getAccountInfo(userTokenAccountA),
-        userCollateralTokenAccountB: await outcomeB.getAccountInfo(userTokenAccountB),
-      })
-
-
-      
-
-      await systemProgram.state.rpc.redeem(
-        new anchor.BN(8),
-        {
-        accounts: {
-          authority: mintAuthority,
-          to: userCollateralTokenAccount,
-          tokenProgram: TokenInstructions.TOKEN_PROGRAM_ID,
-          owner: wallet.publicKey,
-          collateralAccount: vault,
-          outcome1: outcomeA.publicKey,
-          outcome2: outcomeB.publicKey,
-        },
-      })
-
-      assert.ok((await collateralToken.getAccountInfo(userCollateralTokenAccount)).amount.eq(new anchor.BN(32)))
-      assert.ok((await outcomeA.getAccountInfo(userTokenAccountA)).amount.eq(new anchor.BN(8)))
-      assert.ok((await outcomeB.getAccountInfo(userTokenAccountB)).amount.eq(new anchor.BN(8)))
-
-      console.log({
-        userCollateralWallet: await collateralToken.getAccountInfo(userCollateralTokenAccount),
-        userCollateralTokenAccountA: await outcomeA.getAccountInfo(userTokenAccountA),
-        userCollateralTokenAccountB: await outcomeB.getAccountInfo(userTokenAccountB),
-      })
-    })
-    */
 })
