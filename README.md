@@ -1,5 +1,5 @@
 # BETx Solana Program
-Solana Program built with Anchor, in order to be able to work with it you would need to follow the instructions from [https://project-serum.github.io/anchor/getting-started/installation.html](here) to install it. Once you have that, ```anchor test``` is your friend to execute fast calls to the program functions.
+Solana Program built with Anchor, in order to be able to work with it you would need to follow the instructions from [here](https://project-serum.github.io/anchor/getting-started/installation.html) to install it. Once you have that, ```anchor test``` is your friend to execute fast calls to the program functions.
 If you want to use it in devnet do ```anchor deploy``` and then execute the client.js file in scripts directory to give you the desired addresses of the contract and outcomes. There are some things that are still hardcoded, you may change them if you want, the code is easy to understand.
 
 
